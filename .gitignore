@@ -1,0 +1,36 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+build/
+.next/
+out/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Operating system
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Database temporary files
+*.dump
+*.bak
+*.tmp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
