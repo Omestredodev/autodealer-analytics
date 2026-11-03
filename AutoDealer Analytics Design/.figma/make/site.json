@@ -1,0 +1,10 @@
+{
+  "description": "Ajuda concessionárias a divulgar veículos, gerenciar clientes, agendamentos e vendas, com analytics e ferramentas acadêmicas para explorar dados e desempenho.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
