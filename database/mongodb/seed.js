@@ -377,7 +377,18 @@ function seedDatabase(database) {
         skippedCount++;
       }
     } catch (err) {
-      print(`[seed.js] Erro ao inserir evento ${eventDoc.eventId}: ${err.message}`);
+      print(`[seed.js] Falha ao inserir o evento ${eventDoc.eventId}`);
+      print(`[seed.js] Mensagem: ${err.message}`);
+
+      if (err.errInfo) {
+        print("[seed.js] Detalhes da validacao:");
+        print(EJSON.stringify(err.errInfo, null, 2));
+      } else {
+        print("[seed.js] Erro completo:");
+        print(err);
+      }
+
+      throw err;
     }
   });
 

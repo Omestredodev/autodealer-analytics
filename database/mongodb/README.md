@@ -143,24 +143,55 @@ mongosh "$MONGO_URI" database/mongodb/benchmark.js
 
 ---
 
-## 7. Resultados do Benchmark e Métricas de Desempenho
 
-O script `benchmark.js` gera **10.000 documentos de teste** e realiza a comparação detalhada via `explain("executionStats")` entre consultas indexadas e consultas sem índice (`COLLSCAN` forçado via `{ $natural: 1 }`).
+## 7. Benchmark e Métricas de Desempenho
 
-### Tabela Resumo de Desempenho
+O benchmark utiliza 10.000 documentos sintéticos em uma coleção
+temporária com o mesmo validador e índices da coleção audit_events.
 
-| Cenário de Consulta | Modo | Estágio Principal | Docs Examinados | Chaves Examinadas | Tempo Médio | Ganho |
-|---|---|---|---|---|---|---|
-| **Histórico de Entidade** (`entityType`, `entityId`) | **COM ÍNDICE** | `IXSCAN + FETCH` | **10** | **10** | **< 1 ms** | **1000x menos I/O** |
-| Histórico de Entidade | SEM ÍNDICE | `COLLSCAN + SORT` | 10.000 | 0 | 12 - 25 ms | Gargalo de CPU/Memória |
-| **Tipo de Evento** (`SALE_COMPLETED`) | **COM ÍNDICE** | `IXSCAN + FETCH` | **833** | **833** | **1 - 2 ms** | Otimizado |
-| Tipo de Evento | SEM ÍNDICE | `COLLSCAN` | 10.000 | 0 | 10 - 20 ms | Varredura completa |
-| **Auditoria por Usuário** (`userId`) | **COM ÍNDICE** | `IXSCAN + FETCH` | **1.000** | **1.000** | **1 - 2 ms** | Índice parcial eficiente |
-| Auditoria por Usuário | SEM ÍNDICE | `COLLSCAN` | 10.000 | 0 | 11 - 22 ms | Varredura completa |
-| **Janela Temporal UTC** (`occurredAt`) | **COM ÍNDICE** | `IXSCAN + FETCH` | **2.000** | **2.000** | **2 - 4 ms** | Bounds range exatos |
-| Janela Temporal UTC | SEM ÍNDICE | `COLLSCAN` | 10.000 | 0 | 12 - 24 ms | Varredura completa |
+Cada cenário compara:
+- Consulta com índice forçado via hint().
+- Consulta com COLLSCAN forçado via hint({ $natural: 1 }).
 
-### Observações Técnicas do Engenheiro
-1. **Evitou-se o SORT em Memória**: O índice `{ entityType: 1, entityId: 1, occurredAt: -1 }` fornece ordenação natural pré-computada nos nós B-Tree do WiredTiger. O explain comprova ausência do estágio `SORT`.
-2. **Índices Parciais Econômicos**: `userId` e `correlationId` utilizam `partialFilterExpression`. Em bases onde muitos eventos são acionados pelo sistema ou não possuem correlação, isso poupa até 40% de RAM nos índices correspondentes.
-3. **Idempotência**: A inserção via `updateOne(..., { $setOnInsert }, { upsert: true })` em conjunto com a restrição única em `eventId` previne duplicações mesmo em reprocessamentos de mensagens de mensageria (Kafka/RabbitMQ).
+A coleção temporária é removida ao término. Os dados de auditoria
+existentes são preservados.
+
+### Resultados reproduzidos — MongoDB 7.0
+
+| Cenário | Com índice | COLLSCAN | Documentos examinados com índice |
+|---|---:|---:|---:|
+| Histórico por entidade | 0 ms | 5 ms | 200 |
+| Eventos SALE_COMPLETED | 1 ms | 6 ms | 833 |
+| Auditoria por usuário | 2 ms | 6 ms | 1.000 |
+| Intervalo temporal UTC | 2 ms | 8 ms | 2.001 |
+| Fluxo por correlationId | 0 ms | 5 ms | 100 |
+
+Todos os cenários examinaram 10.000 documentos com COLLSCAN.
+
+Os valores representam uma execução de explain("executionStats"),
+não médias estatísticas. Tempos de 0 ms refletem a resolução
+do contador e não indicam execução instantânea.
+
+### Otimização dos índices parciais
+
+Os índices idx_userId_occurredAt e idx_correlationId foram
+ajustados para utilizar partialFilterExpression com $exists: true.
+
+Com essa configuração, as consultas por igualdade passaram
+a utilizar limites específicos do identificador pesquisado,
+eliminando a ordenação SORT adicional nos planos observados.
+
+Documentos com o campo presente e valor null também podem
+participar desses índices.
+
+### Validação funcional
+
+- 17 documentos de auditoria inseridos com sucesso.
+- 12 tipos de eventos representados.
+- 7 índices existentes, incluindo _id_.
+- Segunda execução do seed sem duplicações.
+- Consultas demonstrativas Q1, Q2, Q3 e Q4 executadas.
+- Benchmark executado sem modificar os 17 documentos originais.
+
+A idempotência foi validada em execuções sequenciais.
+Testes concorrentes e de carga distribuída ainda não foram realizados.
