@@ -1,24 +1,25 @@
+
 /**
- * AutoDealer Analytics — Módulo MongoDB
+ * AutoDealer Analytics - Modulo MongoDB
  * Arquivo: database/mongodb/queries.js
- * Descrição: Operações e consultas principais para o módulo de auditoria e histórico.
- * 
- * Consultas disponíveis:
- * 1. recordAuditEvent: Inserção idempotente com detecção de chave duplicada.
- * 2. getEntityHistory: Reconstituição cronológica do histórico de qualquer entidade.
- * 3. getEventsByType: Filtro por tipo de evento do catálogo oficial.
- * 4. getEventsByUser: Auditoria de ações realizadas por colaborador/usuário.
- * 5. getEventsByDateRange: Varredura de eventos dentro de janela temporal UTC.
- * 6. getEventsByCorrelationId: Rastreamento ponta a ponta de fluxo compartilhado entre bancos.
- * 7. getAuditEventVolumeSummary: Agregação estatística de eventos por tipo.
- * 8. getMostModifiedEntities: Identificação de entidades com maior frequência de alterações.
+ *
+ * Consultas de auditoria e historico de alteracoes.
+ *
+ * 1. recordAuditEvent
+ * 2. getEntityHistory
+ * 3. getEventsByType
+ * 4. getEventsByUser
+ * 5. getEventsByDateRange
+ * 6. getEventsByCorrelationId
+ * 7. getAuditEventVolumeSummary
+ * 8. getMostModifiedEntities
  */
 
 const COLLECTION_NAME = "audit_events";
 
 /**
- * Registra um evento de auditoria com suporte a idempotência.
- * Se o eventId já existir, a operação é ignorada com segurança sem duplicar dados.
+ * Registra um evento de auditoria com idempotencia.
+ * O eventId e protegido por um indice unico.
  */
 function recordAuditEvent(eventDoc, database) {
   const currentDb = database || db;
@@ -32,21 +33,37 @@ function recordAuditEvent(eventDoc, database) {
     );
 
     if (result.upsertedCount > 0) {
-      return { status: "INSERTED", eventId: eventDoc.eventId };
-    } else {
-      return { status: "IDEMPOTENT_IGNORED", eventId: eventDoc.eventId };
+      return {
+        status: "INSERTED",
+        eventId: eventDoc.eventId
+      };
     }
+
+    return {
+      status: "IDEMPOTENT_IGNORED",
+      eventId: eventDoc.eventId
+    };
   } catch (err) {
     if (err.code === 11000) {
-      return { status: "IDEMPOTENT_DUPLICATE_KEY", eventId: eventDoc.eventId };
+      return {
+        status: "IDEMPOTENT_DUPLICATE_KEY",
+        eventId: eventDoc.eventId
+      };
     }
+
     throw err;
   }
 }
 
+
 /**
- * Consulta 1: Busca o histórico cronológico de uma entidade (ex: veículo, anúncio).
- * Utiliza o índice composto: { entityType: 1, entityId: 1, occurredAt: -1 }
+ * Q1 - Recupera o historico de uma entidade.
+ *
+ * Indice:
+ * { entityType: 1, entityId: 1, occurredAt: -1 }
+ *
+ * A projecao e passada como segundo argumento
+ * do metodo find(), compativel com mongosh.
  */
 function getEntityHistory(entityType, entityId, database) {
   const currentDb = database || db;
@@ -54,27 +71,31 @@ function getEntityHistory(entityType, entityId, database) {
 
   return collection
     .find(
-      { entityType: entityType, entityId: entityId },
       {
-        projection: {
-          _id: 0,
-          eventId: 1,
-          eventType: 1,
-          userId: 1,
-          occurredAt: 1,
-          previousValues: 1,
-          newValues: 1,
-          correlationId: 1
-        }
+        entityType: entityType,
+        entityId: entityId
+      },
+      {
+        _id: 0,
+        eventId: 1,
+        eventType: 1,
+        userId: 1,
+        occurredAt: 1,
+        previousValues: 1,
+        newValues: 1,
+        correlationId: 1
       }
     )
     .sort({ occurredAt: 1 })
     .toArray();
 }
 
+
 /**
- * Consulta 2: Busca eventos de auditoria filtrados por tipo.
- * Utiliza o índice composto: { eventType: 1, occurredAt: -1 }
+ * Q2 - Busca eventos por tipo.
+ *
+ * Indice:
+ * { eventType: 1, occurredAt: -1 }
  */
 function getEventsByType(eventType, limit = 50, database) {
   const currentDb = database || db;
@@ -88,8 +109,10 @@ function getEventsByType(eventType, limit = 50, database) {
 }
 
 /**
- * Consulta 3: Busca eventos realizados por um usuário/operador específico.
- * Utiliza o índice parcial: { userId: 1, occurredAt: -1 }
+ * Q3 - Busca eventos por usuario.
+ *
+ * Indice parcial:
+ * { userId: 1, occurredAt: -1 }
  */
 function getEventsByUser(userId, limit = 50, database) {
   const currentDb = database || db;
@@ -103,15 +126,25 @@ function getEventsByUser(userId, limit = 50, database) {
 }
 
 /**
- * Consulta 4: Busca eventos dentro de um intervalo de datas UTC.
- * Utiliza o índice: { occurredAt: -1 }
+ * Q4 - Busca eventos em um intervalo de datas UTC.
+ *
+ * Indice:
+ * { occurredAt: -1 }
  */
-function getEventsByDateRange(startDate, endDate, limit = 100, database) {
+function getEventsByDateRange(
+  startDate,
+  endDate,
+  limit = 100,
+  database
+) {
   const currentDb = database || db;
   const collection = currentDb.getCollection(COLLECTION_NAME);
 
-  const start = startDate instanceof Date ? startDate : new Date(startDate);
-  const end = endDate instanceof Date ? endDate : new Date(endDate);
+  const start =
+    startDate instanceof Date ? startDate : new Date(startDate);
+
+  const end =
+    endDate instanceof Date ? endDate : new Date(endDate);
 
   return collection
     .find({
@@ -126,8 +159,10 @@ function getEventsByDateRange(startDate, endDate, limit = 100, database) {
 }
 
 /**
- * Consulta 5: Rastreia eventos pertencentes a uma mesma operação de negócio correlacionada.
- * Utiliza o índice parcial: { correlationId: 1, occurredAt: -1 }
+ * Q5 - Recupera eventos da mesma operacao de negocio.
+ *
+ * Indice parcial:
+ * { correlationId: 1, occurredAt: -1 }
  */
 function getEventsByCorrelationId(correlationId, database) {
   const currentDb = database || db;
@@ -140,7 +175,7 @@ function getEventsByCorrelationId(correlationId, database) {
 }
 
 /**
- * Consulta 6: Agregação com sumário de volume de auditoria por tipo de evento.
+ * Q6 - Resume o volume de auditoria por tipo de evento.
  */
 function getAuditEventVolumeSummary(database) {
   const currentDb = database || db;
@@ -163,19 +198,23 @@ function getAuditEventVolumeSummary(database) {
           totalEvents: 1,
           firstOccurrence: 1,
           lastOccurrence: 1,
-          uniqueEntitiesCount: { $size: "$distinctEntities" },
+          uniqueEntitiesCount: {
+            $size: "$distinctEntities"
+          },
           _id: 0
         }
       },
       {
-        $sort: { totalEvents: -1 }
+        $sort: {
+          totalEvents: -1
+        }
       }
     ])
     .toArray();
 }
 
 /**
- * Consulta 7: Agregação para identificar entidades com maior quantidade de alterações.
+ * Q7 - Identifica as entidades mais modificadas.
  */
 function getMostModifiedEntities(limit = 10, database) {
   const currentDb = database || db;
@@ -185,7 +224,10 @@ function getMostModifiedEntities(limit = 10, database) {
     .aggregate([
       {
         $group: {
-          _id: { entityType: "$entityType", entityId: "$entityId" },
+          _id: {
+            entityType: "$entityType",
+            entityId: "$entityId"
+          },
           totalChanges: { $sum: 1 },
           lastChange: { $max: "$occurredAt" },
           eventTypes: { $addToSet: "$eventType" }
@@ -197,12 +239,16 @@ function getMostModifiedEntities(limit = 10, database) {
           entityId: "$_id.entityId",
           totalChanges: 1,
           lastChange: 1,
-          eventTypesCount: { $size: "$eventTypes" },
+          eventTypesCount: {
+            $size: "$eventTypes"
+          },
           _id: 0
         }
       },
       {
-        $sort: { totalChanges: -1 }
+        $sort: {
+          totalChanges: -1
+        }
       },
       {
         $limit: limit
@@ -212,54 +258,104 @@ function getMostModifiedEntities(limit = 10, database) {
 }
 
 /**
- * Função utilitária para executar e exibir consultas de exemplo no mongosh.
+ * Executa consultas demonstrativas com os dados do seed.
  */
 function runExampleQueries(database) {
   const currentDb = database || db;
+
   print("======================================================================");
-  print(" AutoDealer Analytics — Demonstração das Consultas de Auditoria");
+  print(" AutoDealer Analytics - Demonstracao das Consultas de Auditoria");
   print("======================================================================\n");
 
-  // 1. Histórico de entidade
-  const sampleVehicleId = "b1111111-1111-4111-8111-111111111111";
-  print(`[Q1] Reconstituição de histórico do Veículo (${sampleVehicleId}):`);
-  const history = getEntityHistory("vehicle", sampleVehicleId, currentDb);
-  history.forEach((h, idx) => {
-    print(`  ${idx + 1}. [${h.occurredAt.toISOString()}] ${h.eventType} | Usuário: ${h.userId || 'SISTEMA'}`);
-    if (h.previousValues) print(`     Anterior: ${JSON.stringify(h.previousValues)}`);
-    if (h.newValues) print(`     Novo:     ${JSON.stringify(h.newValues)}`);
-  });
-  print(`  Total de alterações registradas: ${history.length}\n`);
+  // Q1 - Historico de veiculo
+  const sampleVehicleId =
+    "b1111111-1111-4111-8111-111111111111";
 
-  // 2. Busca por tipo de evento
-  print("[Q2] Consultando eventos de tipo 'SALE_COMPLETED':");
-  const sales = getEventsByType("SALE_COMPLETED", 5, currentDb);
+  print(`[Q1] Historico do veiculo (${sampleVehicleId}):`);
+
+  const history = getEntityHistory(
+    "vehicle",
+    sampleVehicleId,
+    currentDb
+  );
+
+  history.forEach((h, idx) => {
+    print(
+      `  ${idx + 1}. [${h.occurredAt.toISOString()}] ` +
+      `${h.eventType} | Usuario: ${h.userId || "SISTEMA"}`
+    );
+
+    if (h.previousValues) {
+      print(`     Anterior: ${JSON.stringify(h.previousValues)}`);
+    }
+
+    if (h.newValues) {
+      print(`     Novo: ${JSON.stringify(h.newValues)}`);
+    }
+  });
+
+  print(`  Total de alteracoes registradas: ${history.length}\n`);
+
+  // Q2 - Eventos de venda concluida
+  print("[Q2] Eventos do tipo SALE_COMPLETED:");
+
+  const sales = getEventsByType(
+    "SALE_COMPLETED",
+    5,
+    currentDb
+  );
+
   print(`  Encontrados: ${sales.length} evento(s)`);
-  sales.forEach(s => print(`  - Evento: ${s.eventId} | Valor final: R$ ${s.newValues?.finalAmount || 'N/A'}`));
+
+  sales.forEach((s) => {
+    print(
+      `  - Evento: ${s.eventId} | ` +
+      `Valor final: R$ ${s.newValues?.finalAmount ?? "N/A"}`
+    );
+  });
+
   print("");
 
-  // 3. Busca por correlationId
-  const sampleCorrelation = "10000000-0000-4000-8000-000000000001";
-  print(`[Q3] Rastreamento de fluxo comercial correlacionado (${sampleCorrelation}):`);
-  const flow = getEventsByCorrelationId(sampleCorrelation, currentDb);
-  flow.forEach((step, idx) => {
-    print(`  Passo ${idx + 1}: ${step.eventType} em ${step.entityType} (${step.entityId}) às ${step.occurredAt.toISOString()}`);
-  });
-  print(`  Total de eventos correlacionados no fluxo: ${flow.length}\n`);
+  // Q3 - Correlacao de operacoes
+  const sampleCorrelation =
+    "10000000-0000-4000-8000-000000000001";
 
-  // 4. Sumário agregado por tipo
-  print("[Q4] Sumário volumétrico por tipo de evento de auditoria:");
+  print(
+    `[Q3] Fluxo correlacionado (${sampleCorrelation}):`
+  );
+
+  const flow = getEventsByCorrelationId(
+    sampleCorrelation,
+    currentDb
+  );
+
+  flow.forEach((step, idx) => {
+    print(
+      `  Passo ${idx + 1}: ${step.eventType} ` +
+      `em ${step.entityType} (${step.entityId}) ` +
+      `as ${step.occurredAt.toISOString()}`
+    );
+  });
+
+  print(
+    `  Total de eventos correlacionados: ${flow.length}\n`
+  );
+
+  // Q4 - Agregacao por tipo
+  print("[Q4] Resumo de eventos por tipo:");
+
   const summary = getAuditEventVolumeSummary(currentDb);
   printjson(summary);
+
   print("\n======================================================================");
 }
 
-// Execução direta no mongosh
+// Execucao direta no mongosh
 if (typeof db !== "undefined") {
   runExampleQueries(db);
 }
 
-// Exportação para uso modular se executado via Node.js
+// Exportacao para uso via Node.js
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     recordAuditEvent,
