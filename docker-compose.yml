@@ -2,27 +2,46 @@
 name: autodealer-analytics
 
 services:
+  postgresql:
+    image: postgres:17
+    container_name: autodealer-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
+      POSTGRES_DB: autodealer_analytics
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d autodealer_analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   mongodb:
     image: mongo:7.0
     container_name: autodealer-mongo
+    restart: unless-stopped
     ports:
       - "127.0.0.1:27017:27017"
     volumes:
       - mongodb_data:/data/db
-    restart: unless-stopped
 
   cassandra:
     image: cassandra:5.0
     container_name: autodealer-cassandra
-    ports:
-      - "127.0.0.1:9042:9042"
+    restart: unless-stopped
     environment:
       MAX_HEAP_SIZE: 1G
       HEAP_NEWSIZE: 256M
+    ports:
+      - "127.0.0.1:9042:9042"
     volumes:
       - cassandra_data:/var/lib/cassandra
-    restart: unless-stopped
 
 volumes:
+  postgresql_data:
   mongodb_data:
   cassandra_data:
