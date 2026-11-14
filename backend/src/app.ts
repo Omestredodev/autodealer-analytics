@@ -3,6 +3,7 @@ import Fastify from "fastify";
 
 import { checkPostgresConnection } from "./database/postgresql";
 import { vehiclesRoutes } from "./modules/vehicles/vehicles.routes";
+import { advertisementsRoutes } from "./modules/advertisements/advertisements.routes";
 
 /**
  * Configura a instancia principal do Fastify.
@@ -40,9 +41,10 @@ export function buildApp() {
   });
 
   /**
-   * Registra o modulo de veiculos.
+   * Registra os modulos da API.
    */
   app.register(vehiclesRoutes);
+  app.register(advertisementsRoutes);
 
   return app;
 }
