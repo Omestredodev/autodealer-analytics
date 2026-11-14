@@ -6,6 +6,7 @@ import { vehiclesRoutes } from './modules/vehicles/vehicles.routes';
 import { advertisementsRoutes } from './modules/advertisements/advertisements.routes';
 import { auditRoutes } from './modules/audit/audit.routes';
 import { activityRoutes } from './modules/activity/activity.routes';
+import { operationsRoutes } from './modules/operations/operations.routes';
 
 export function buildApp() {
   const app = Fastify({ logger: true });
@@ -30,6 +31,7 @@ export function buildApp() {
   app.register(advertisementsRoutes);
   app.register(auditRoutes);
   app.register(activityRoutes);
+  app.register(operationsRoutes);
 
   app.addHook('onClose', async () => {
     await Promise.allSettled([closeMongoConnection(), closeCassandraConnection()]);
