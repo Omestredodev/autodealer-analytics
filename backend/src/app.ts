@@ -1,50 +1,38 @@
+import Fastify from 'fastify';
+import { checkPostgresConnection } from './database/postgresql';
+import { checkMongoConnection, closeMongoConnection } from './database/mongodb';
+import { checkCassandraConnection, closeCassandraConnection } from './database/cassandra';
+import { vehiclesRoutes } from './modules/vehicles/vehicles.routes';
+import { advertisementsRoutes } from './modules/advertisements/advertisements.routes';
+import { auditRoutes } from './modules/audit/audit.routes';
+import { activityRoutes } from './modules/activity/activity.routes';
 
-import Fastify from "fastify";
-
-import { checkPostgresConnection } from "./database/postgresql";
-import { vehiclesRoutes } from "./modules/vehicles/vehicles.routes";
-import { advertisementsRoutes } from "./modules/advertisements/advertisements.routes";
-
-/**
- * Configura a instancia principal do Fastify.
- */
 export function buildApp() {
-  const app = Fastify({
-    logger: true
-  });
+  const app = Fastify({ logger: true });
 
-  /**
-   * Endpoint de verificacao da API.
-   *
-   * GET /health
-   */
-  app.get("/health", async (_request, reply) => {
-    const postgresConnected = await checkPostgresConnection();
-
-    if (!postgresConnected) {
-      return reply.code(503).send({
-        status: "degraded",
-        service: "autodealer-backend",
-        databases: {
-          postgresql: "unavailable"
-        }
-      });
-    }
-
-    return reply.send({
-      status: "ok",
-      service: "autodealer-backend",
+  app.get('/health', async (_request, reply) => {
+    const [pg, mongo, cassandra] = await Promise.all([
+      checkPostgresConnection(), checkMongoConnection(), checkCassandraConnection(),
+    ]);
+    const ready = pg && mongo && cassandra;
+    return reply.code(ready ? 200 : 503).send({
+      status: ready ? 'ok' : 'degraded',
+      service: 'autodealer-backend',
       databases: {
-        postgresql: "connected"
-      }
+        postgresql: pg ? 'connected' : 'unavailable',
+        mongodb: mongo ? 'connected' : 'unavailable',
+        cassandra: cassandra ? 'connected' : 'unavailable',
+      },
     });
   });
 
-  /**
-   * Registra os modulos da API.
-   */
   app.register(vehiclesRoutes);
   app.register(advertisementsRoutes);
+  app.register(auditRoutes);
+  app.register(activityRoutes);
 
+  app.addHook('onClose', async () => {
+    await Promise.allSettled([closeMongoConnection(), closeCassandraConnection()]);
+  });
   return app;
 }
