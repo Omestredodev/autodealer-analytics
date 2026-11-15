@@ -1,239 +1,241 @@
-
 # AutoDealer Analytics
 
-Sistema de gestão de concessionárias desenvolvido como projeto acadêmico da disciplina de **Tuning e Performance de Dados**, do curso de Ciência da Computação.
+Sistema acadêmico de gestão de concessionária desenvolvido na disciplina de **Tuning e Performance de Dados**, com **persistência poliglota** em PostgreSQL, MongoDB e Apache Cassandra.
 
-A aplicação utiliza uma arquitetura de persistência poliglota, integrando **PostgreSQL, MongoDB e Apache Cassandra** a um backend Fastify e a uma interface React.
+> **Status:** versão acadêmica funcional para demonstração local. Não utilizar publicamente em produção: as rotas de escrita de demonstração não possuem autenticação/autorização reais.
 
-## Objetivo
+## Objetivo e escolha das tecnologias
 
-Desenvolver uma plataforma para gerenciar veículos, anúncios, clientes, leads, agendamentos e vendas, utilizando diferentes modelos de banco de dados conforme os requisitos de cada operação.
+A aplicação permite gerenciar estoque, clientes, anúncios, leads, agendamentos, vendas, vistorias e favoritos. Cada tecnologia foi escolhida conforme o padrão de uso dos dados.
 
-O projeto também explora estratégias de indexação, otimização de consultas, consistência, teorema CAP e desempenho de bancos relacionais e NoSQL.
+| Camada | Tecnologia | Justificativa |
+|---|---|---|
+| Frontend | React, TypeScript, Vite, Tailwind CSS | Interface administrativa e catálogo público |
+| Backend | Node.js, Fastify, TypeScript | API HTTP modular conectada aos três bancos |
+| Relacional | PostgreSQL 17 | Integridade referencial e transações comerciais |
+| Documental | MongoDB 7.0 | Auditoria com deltas e vistorias com checklist flexível |
+| Wide-column | Apache Cassandra 5.0 | Eventos e favoritos com consultas orientadas a partições |
+| Infraestrutura | Docker Compose | Execução local reproduzível dos serviços de banco |
 
-## Tecnologias utilizadas
+```mermaid
+flowchart LR
+  FE[React / Vite] <--> BE[Fastify / Node.js]
+  BE <--> PG[(PostgreSQL)]
+  BE <--> MG[(MongoDB)]
+  BE <--> CS[(Cassandra)]
+```
 
-| Camada | Tecnologias |
-|---|---|
-| Frontend | React, TypeScript, Vite e Tailwind CSS |
-| Backend | Node.js, TypeScript e Fastify |
-| Banco relacional | PostgreSQL 17 |
-| Banco documental | MongoDB 7.0 |
-| Banco de colunas largas | Apache Cassandra 5.0 |
-| Infraestrutura | Docker e Docker Compose |
-| Versionamento | Git e GitHub |
+### Persistência e consistência
 
-## Arquitetura de dados
+- **PostgreSQL:** fonte transacional principal; operações comerciais e relacionamentos entre veículos, anúncios, clientes, leads, agendamentos e vendas.
+- **MongoDB:** coleção `audit_events` para histórico de mudanças e coleção separada de vistorias. A auditoria é encaminhada pelo padrão **outbox transacional**, permitindo reprocessamento após indisponibilidade temporária do MongoDB. Vistorias aprovadas são preservadas para consulta.
+- **Cassandra:** tabelas denormalizadas de telemetria (por anúncio, veículo, usuário, tipo e período) e tabela de favoritos por usuário. O laboratório local utiliza **RF=1**; não há tolerância à queda de um nó Cassandra nessa configuração.
 
-| Banco | Responsabilidade |
-|---|---|
-| PostgreSQL | Dados transacionais: veículos, anúncios, clientes, leads, agendamentos e vendas |
-| MongoDB | Histórico de auditoria e registros documentais das alterações |
-| Apache Cassandra | Eventos de atividade e consultas por anúncio, veículo, usuário, tipo e período |
+## Funcionalidades
 
-O PostgreSQL é utilizado como fonte principal dos dados transacionais.
+- Cadastro e consulta de clientes; edição e exclusão quando permitidas pelos vínculos transacionais.
+- Cadastro de veículos e gestão do estoque; retirada lógica de unidades, preservando histórico.
+- Criação de anúncios em rascunho, publicação, pausa e encerramento; seleção de anúncios publicados para a seção de **destaques reais** do site.
+- Catálogo público, visualização de veículos e favoritos gerenciáveis pelo usuário de demonstração.
+- Vistorias documentais com checklist, histórico, edição de rascunhos e aprovação.
+- Gestão de leads, agendamentos e vendas, com atualização de status e auditoria.
+- Registros de telemetria e consultas no Cassandra; experimentos de índices e benchmarks.
 
-As alterações comerciais geram registros de auditoria encaminhados ao MongoDB por meio de um mecanismo de **outbox transacional**, com processamento assíncrono e possibilidade de reenvio.
+**Importante:** a exclusão de veículos e anúncios é lógica quando necessária para preservar referências e auditoria; ela não representa necessariamente `DELETE` físico no PostgreSQL.
 
-O Cassandra utiliza tabelas desnormalizadas organizadas para os padrões de consulta dos eventos de atividade.
+## Pré-requisitos
 
-## Funcionalidades implementadas
+- Git, Node.js/npm e Docker Desktop com Docker Compose.
+- Windows PowerShell (os scripts `.ps1` foram preparados para Windows); Python 3.12 para os scripts de integração `apply-*.py` caso precise reaplicar patches (o código versionado já deve conter essas alterações).
+- Portas locais disponíveis: `5433` (PostgreSQL), `27017` (MongoDB), `9042` (Cassandra), `3333` (API) e `5173` (site).
+- Memória suficiente para executar os três bancos, especialmente o Cassandra.
 
-- Consulta de veículos e anúncios.
-- Visualização do catálogo público.
-- Listagem de leads, agendamentos e vendas.
-- Atualização de status das operações comerciais.
-- Registro de auditoria das alterações no MongoDB.
-- Registro e consulta de eventos de atividade no Cassandra.
-- Painel administrativo integrado aos bancos de dados.
-- Consultas com paginação e filtros nos módulos compatíveis.
-- Endpoints de saúde e conectividade dos serviços.
-- Scripts de benchmark e análise de desempenho.
+## Instalação em computador novo — bancos vazios
 
-**Observação:** o sistema foi desenvolvido para execução e demonstração em ambiente local. A API ainda não possui autenticação, portanto não deve ser exposta publicamente sem controles adicionais de segurança.
+> **Execute as etapas de inicialização SQL/CQL/MongoDB somente em uma instalação nova, com volumes vazios.** O script `database/postgresql/schema.sql` não deve ser reaplicado indiscriminadamente em um banco já preenchido. **Não execute `docker compose down -v`** para tentar reiniciar os dados de uma máquina de demonstração.
 
-## Estrutura do projeto
+### 1. Clonar e configurar as variáveis
 
-~~~text
-autodealer-analytics/
-├── backend/
-│   └── src/
-├── frontend/
-│   └── src/
-├── database/
-│   ├── postgresql/
-│   ├── mongodb/
-│   └── cassandra/
-├── docs/
-│   ├── architecture/
-│   ├── database-models/
-│   ├── benchmarks/
-│   └── entrega-final/
-├── docker-compose.yml
-└── README.md
-~~~
+Após o merge da versão acadêmica na `main`:
 
-## Como executar o projeto
-
-### Pré-requisitos
-
-- Docker Desktop
-- Node.js e npm
-- Git
-
-### 1. Clonar o repositório
-
-~~~powershell
+```powershell
 git clone https://github.com/Omestredodev/autodealer-analytics.git
 cd autodealer-analytics
-~~~
+Copy-Item .\backend\.env.example .\backend\.env
+```
 
-### 2. Preparar as configurações
+Até ocorrer o merge, teste a branch `feat/crud-poliglota`, por exemplo usando `git clone --branch feat/crud-poliglota`.
 
-Configure as variáveis de ambiente do backend conforme a documentação do projeto.
+Crie **`.env` na raiz do repositório** com uma senha PostgreSQL definida por você:
 
-Certifique-se de que os serviços PostgreSQL, MongoDB e Cassandra estão configurados para o ambiente local.
+```dotenv
+POSTGRES_PASSWORD=SUA_SENHA_LOCAL
+```
 
-### 3. Iniciar os bancos de dados
+Ajuste **`backend/.env`** conforme `backend/.env.example`. Para o PostgreSQL do Compose, os valores locais relevantes são:
 
-~~~powershell
+```dotenv
+PORT=3333
+PGHOST=127.0.0.1
+PGPORT=5433
+PGDATABASE=autodealer_analytics
+PGUSER=postgres
+PGPASSWORD=SUA_SENHA_LOCAL
+MONGO_URI=mongodb://127.0.0.1:27017
+MONGO_DB=autodealer
+CASSANDRA_CONTACT_POINTS=127.0.0.1
+CASSANDRA_LOCAL_DC=datacenter1
+CASSANDRA_KEYSPACE=autodealer
+CRUD_DEMO_ENABLED=true
+```
+
+Utilize a **mesma senha** de PostgreSQL nos dois arquivos. `CRUD_DEMO_ENABLED=true` habilita operações de escrita **somente para demonstração local**. Não publique `.env` nem credenciais no Git. Verifique que ambos estejam ignorados com `git check-ignore .env backend/.env`.
+
+### 2. Iniciar os três serviços
+
+```powershell
 docker compose up -d
 docker compose ps
-~~~
+```
 
-Para uma instalação nova, execute também os scripts de inicialização e carga de dados descritos na documentação de cada banco.
+Aguarde o PostgreSQL ficar `healthy` e o Cassandra estar pronto para conexões CQL. Inicialização inicial do Cassandra pode ser mais lenta.
 
-### 4. Iniciar o backend
+### 3. Criar e popular PostgreSQL — executar uma única vez
 
-Em um terminal:
+```powershell
+docker cp .\database\postgresql\schema.sql autodealer-postgres:/tmp/schema.sql
+docker exec autodealer-postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d autodealer_analytics -f /tmp/schema.sql
 
-~~~powershell
-npm --prefix backend install
-npm --prefix backend run dev
-~~~
+docker cp .\database\postgresql\seed.sql autodealer-postgres:/tmp/seed.sql
+docker exec autodealer-postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d autodealer_analytics -f /tmp/seed.sql
+```
 
-A API estará disponível em:
+Se o repositório incluir `database/postgresql/indexes.sql`, aplique os índices de tuning:
 
-http://127.0.0.1:3333
+```powershell
+docker cp .\database\postgresql\indexes.sql autodealer-postgres:/tmp/indexes.sql
+docker exec autodealer-postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d autodealer_analytics -f /tmp/indexes.sql
+```
 
-Endpoint de verificação:
+Aplique a migração da outbox **depois de criar as tabelas**:
 
-http://127.0.0.1:3333/health
+```powershell
+docker cp .\database\postgresql\migrations\001_audit_outbox.sql autodealer-postgres:/tmp/001_audit_outbox.sql
+docker exec autodealer-postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d autodealer_analytics -f /tmp/001_audit_outbox.sql
+```
 
-### 5. Iniciar o frontend
+Aplique a migração aditiva dos anúncios em destaque (idempotente):
 
-Em outro terminal:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\docs\featured\init-featured.ps1
+```
 
-~~~powershell
-npm --prefix frontend install
-npm --prefix frontend run dev
-~~~
+### 4. Criar MongoDB — auditoria
 
-Acesse:
+```powershell
+docker cp .\database\mongodb\collections.js autodealer-mongo:/tmp/collections.js
+docker exec autodealer-mongo mongosh --quiet 'mongodb://127.0.0.1:27017/autodealer' /tmp/collections.js
 
-http://127.0.0.1:5173
+docker cp .\database\mongodb\indexes.js autodealer-mongo:/tmp/indexes.js
+docker exec autodealer-mongo mongosh --quiet 'mongodb://127.0.0.1:27017/autodealer' /tmp/indexes.js
 
-## Endpoints principais
+docker cp .\database\mongodb\seed.js autodealer-mongo:/tmp/seed.js
+docker exec autodealer-mongo mongosh --quiet 'mongodb://127.0.0.1:27017/autodealer' /tmp/seed.js
+```
 
-| Método | Endpoint | Responsabilidade |
-|---|---|---|
-| GET | `/health` | Verificar os serviços |
-| GET | `/vehicles` | Consultar veículos |
-| GET | `/advertisements` | Consultar anúncios |
-| GET | `/leads` | Consultar leads |
-| GET | `/appointments` | Consultar agendamentos |
-| GET | `/sales` | Consultar vendas |
-| GET | `/audit-events` | Consultar auditorias MongoDB |
-| GET | `/activity-events` | Consultar eventos Cassandra |
-| POST | `/activity-events` | Registrar evento de atividade |
+### 5. Criar Cassandra — telemetria
 
-A rota `/audit-events` aceita filtros específicos e `limit`, sem paginação por `page`.
+```powershell
+docker cp .\database\cassandra\schema.cql autodealer-cassandra:/tmp/schema.cql
+docker exec autodealer-cassandra cqlsh -f /tmp/schema.cql
 
-As consultas ao Cassandra exigem parâmetros de partição, como `day` e `shard`.
+docker cp .\database\cassandra\seed.cql autodealer-cassandra:/tmp/seed.cql
+docker exec autodealer-cassandra cqlsh -f /tmp/seed.cql
+```
 
-## Benchmarks e tuning
+### 6. Criar os recursos de vistorias e favoritos
 
-Foram realizados experimentos de desempenho nos três bancos de dados.
+Somente após o MongoDB e o Cassandra estarem inicializados:
 
-### PostgreSQL
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\docs\business\init-business.ps1
+```
 
-Consulta de veículos disponíveis ordenados por data:
+Esse script cria a coleção de vistorias e a tabela de favoritos sem modificar a auditoria e a telemetria existentes.
 
-| Plano de execução | Tempo medido |
-|---|---:|
-| Varredura sequencial forçada | 92,461 ms |
-| Consulta utilizando índice | 2,381 ms |
+### 7. Instalar dependências e iniciar API e frontend
 
-A consulta indexada foi aproximadamente **38,8 vezes mais rápida nessa execução específica**.
-
-O teste sequencial foi realizado desabilitando os caminhos de acesso por índices para comparação, sem remover fisicamente os índices existentes.
-
-### MongoDB
-
-Foram analisadas consultas por entidade, tipo de evento, usuário, período e identificador de correlação.
-
-Os testes utilizaram uma coleção temporária com 10.000 documentos e compararam planos indexados com varredura de coleção.
-
-### Cassandra
-
-Foram executadas duas rodadas de benchmark, com 100 execuções para cada um dos cinco padrões de consulta.
-
-As médias observadas ficaram próximas de 15 a 16 ms, dependendo da consulta e da rodada.
-
-Esses experimentos foram realizados em ambiente local e não representam testes de carga de produção.
-
-## CAP e consistência
-
-O relatório técnico apresenta a análise dos modelos de consistência e das propriedades de tolerância a falhas de cada banco.
-
-A configuração local utiliza uma instância de cada tecnologia, sem demonstrar tolerância real à queda de nós.
-
-Para Cassandra, a implantação local utiliza fator de replicação 1 (`RF=1`). Cenários com múltiplas réplicas, quórum e disponibilidade distribuída são discutidos teoricamente na documentação.
-
-## Documentação acadêmica
-
-Os materiais finais estão disponíveis em:
-
-**`docs/entrega-final/`**
-
-Incluindo:
-
-- Relatório técnico em Word, PDF e Markdown.
-- Apresentação em PowerPoint e PDF.
-- Roteiro de apresentação.
-- Checklist de entrega.
-- Script de verificação do ambiente.
-
-Resultados adicionais de benchmark estão em:
-
-**`docs/benchmarks/`**
-
-## Validação do projeto
-
-Para verificar as compilações:
-
-~~~powershell
+```powershell
+npm --prefix backend ci
+npm --prefix frontend ci
 npm --prefix backend run check
 npm --prefix backend run build
 npm --prefix frontend run build
-~~~
+```
 
-Para verificar o ambiente de demonstração:
+Em **terminais separados**:
 
-~~~powershell
+```powershell
+npm --prefix backend run dev
+```
+
+```powershell
+npm --prefix frontend run dev
+```
+
+Abra **http://127.0.0.1:5173**. API: **http://127.0.0.1:3333**. Saúde dos bancos: **http://127.0.0.1:3333/health**.
+
+### 8. Validar os módulos
+
+```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\docs\entrega-final\scripts\verificar-ambiente.ps1
-~~~
+powershell -NoProfile -ExecutionPolicy Bypass -File .\docs\business\check-listing.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\docs\featured\check-featured.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\docs\stock\check-vehicle-cycle.ps1
+```
 
-## Equipe
+Os testes com escrita (`test-business.ps1` e `check-vehicle-cycle.ps1 -ExecuteWriteFlow`) **modificam os bancos de demonstração** e devem ser executados somente quando isso for intencional. Esses testes podem gerar históricos de auditoria mesmo quando realizam limpeza lógica.
 
-- Guilherme Gomes — PostgreSQL
-- Gustavo Delfino — MongoDB
-- Bruno Kenez — Apache Cassandra
+**Estado da validação:** backend e frontend compilaram em uma cópia limpa criada com `git archive`, e os fluxos de negócio foram testados na instalação já existente. A inicialização completa das três bases a partir de volumes vazios ainda precisa ser homologada em ambiente isolado.
 
-## Status do projeto
+## Estrutura relevante
 
-**Concluído para entrega acadêmica e demonstração local.**
+```text
+autodealer-analytics/
+  backend/
+  frontend/
+  database/
+    postgresql/      schema, seed, índices e migrações
+    mongodb/         auditoria, vistorias e benchmarks
+    cassandra/       eventos, favoritos e benchmarks
+  docs/
+    architecture/
+    database-models/
+    benchmarks/
+    business/
+    stock/
+    featured/
+    entrega-final/   relatório, slides, roteiro e checklist
+  docker-compose.yml
+  README.md
+```
 
-A integração entre frontend, backend e os três bancos foi validada por testes de leitura, operações comerciais e consultas de auditoria e atividade.
+## Tuning e resultados da execução local
 
-O projeto não está preparado para implantação pública em produção sem autenticação, autorização, proteção de dados e demais controles operacionais.
+- **PostgreSQL:** consulta de veículos disponíveis com varredura sequencial forçada: **92,461 ms**; com `Index Scan`: **2,381 ms** (aproximadamente **38,8×** mais rápida naquela medição). Os índices não foram removidos fisicamente no teste de base.
+- **MongoDB:** consultas sobre 10.000 documentos temporários, comparando planos com índice e varredura; os resultados apresentaram variabilidade entre rodadas. A coleção temporária foi removida após o teste.
+- **Cassandra:** duas rodadas de 100 execuções para cada um dos cinco padrões; médias próximas de **15–16 ms**. A execução mede o cliente Python e a comunicação local, não só tempo interno do banco.
+
+As cargas, volumes e metodologias são distintos; os números **não são um ranking de velocidade entre tecnologias**. Consulte `docs/benchmarks/` e `docs/entrega-final/relatorio/`.
+
+## Arquitetura CAP e limitações
+
+O laboratório opera com **uma instância de cada banco**, Cassandra `RF=1`, sem disponibilidade distribuída nem failover. MongoDB e Cassandra não têm autenticação habilitada nessa configuração de demonstração, e o backend não dispõe de controle de acesso apropriado para produção. A outbox mitiga falhas na entrega assíncrona da auditoria, mas não garante disponibilidade das demais funções. Para uso comercial, são necessários autenticação, isolamento entre concessionárias, backups com restauração testada, observabilidade e uma topologia de replicação apropriada.
+
+## Documentação e equipe
+
+- Documentação técnica e apresentação: [`docs/entrega-final/`](docs/entrega-final/).
+- Modelo e contratos: [`docs/architecture/`](docs/architecture/) e [`docs/database-models/`](docs/database-models/).
+- Experimentos e benchmarks: [`docs/benchmarks/`](docs/benchmarks/).
+
+Os nomes e RAs completos dos integrantes devem constar dos documentos acadêmicos de entrega.
