@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { cellText, getJson, money, type ApiRow } from './api'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { cellText, getJson, money, postJson, type ApiRow } from './api'
 import { useResource } from './useResource'
 
 type SelectProps = { onSelect: (id: string) => void }
@@ -38,18 +38,31 @@ export function LiveCatalog({onSelect}: SelectProps) {
 export function LiveVehicleDetail({ id, onBack }: { id: string | null; onBack: () => void }) {
   const [row,setRow]=useState<ApiRow|null>(null)
   const [error,setError]=useState<string|null>(null)
+  const [telemetry,setTelemetry]=useState('')
+  const tracked=useRef<Set<string>>(new Set())
   useEffect(()=>{
     if(!id) return
+    setRow(null); setError(null); setTelemetry('')
     const controller=new AbortController()
     getJson<{data:ApiRow}>(`/vehicles/${encodeURIComponent(id)}`,controller.signal).then(result=>setRow(result.data)).catch(e=>{if(!controller.signal.aborted)setError(String(e))})
     return ()=>controller.abort()
   },[id])
+  useEffect(()=>{
+    if(!row || !id || row.id !== id || typeof row.advertisement_id !== 'string') return
+    if(tracked.current.has(id)) return
+    tracked.current.add(id)
+    const event={eventId:crypto.randomUUID(), occurredAt:new Date().toISOString(),eventType:'ADVERTISEMENT_VIEWED',advertisementId:row.advertisement_id}
+    setTelemetry('Registrando visualização no Cassandra...')
+    postJson<{data:{eventId:string}}>('/activity-events',event)
+      .then(()=>setTelemetry('Visualização registrada no Cassandra.'))
+      .catch(()=>setTelemetry('Não foi possível registrar a visualização no Cassandra; o catálogo permanece disponível.'))
+  },[id,row])
   return <main className="client-main inner-page detail-page"><button className="back-link" onClick={onBack}>← Voltar para veículos</button>
     {!id&&<p className="live-error">Selecione um veículo do catálogo.</p>}
     {error&&<p className="live-error">{error}</p>}
     {!error&&id&&!row&&<p className="live-info">Consultando veículo...</p>}
     {row&&<div className="live-vehicle-detail"><div className="live-photo large"><span>🚘</span><small>Foto não disponível na base atual</small></div><div className="live-detail-info"><span className="live-availability">● {cellText(row.status)}</span><small>{cellText(row.id)}</small><h1>{cellText(row.make)} {cellText(row.model)}</h1><p>{cellText(row.version)}</p><strong>{money(row.price)}</strong><dl>
       {([['Ano modelo',row.model_year],['Quilometragem',`${Number(row.mileage || 0).toLocaleString('pt-BR')} km`],['Combustível',row.fuel_type],['Câmbio',row.transmission],['Cor',row.color],['Motor',row.engine],['Anúncio',row.advertisement_id]] as [string,unknown][]).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{cellText(value)}</dd></div>)}
-    </dl><p className="live-note">Consulta real do PostgreSQL. Fotos e solicitação de interesse dependem de funcionalidades ainda não implementadas no backend.</p></div></div>}
+    </dl>{telemetry&&<p className={`live-telemetry-note ${telemetry.startsWith('Não')?'live-telemetry-error':''}`} role="status">{telemetry}</p>}<p className="live-note">Consulta real do PostgreSQL. Fotos e solicitação de interesse dependem de funcionalidades ainda não implementadas no backend.</p></div></div>}
   </main>
 }

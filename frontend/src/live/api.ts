@@ -12,13 +12,35 @@ export interface ApiList<T = ApiRow> {
   pagination?: Pagination
 }
 
-export async function getJson<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`/api${endpoint}`, { signal, headers: { Accept: 'application/json' } })
+async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const details = await response.text().catch(() => '')
-    throw new Error(`API HTTP ${response.status}${details ? `: ${details.slice(0, 150)}` : ''}`)
+    const raw = await response.text().catch(() => '')
+    let details = raw
+    try {
+      const parsed = JSON.parse(raw) as { message?: string; error?: string }
+      details = parsed.message ?? parsed.error ?? raw
+    } catch { /* erro textual */ }
+    throw new Error(`API HTTP ${response.status}${details ? `: ${details.slice(0, 220)}` : ''}`)
   }
   return response.json() as Promise<T>
+}
+
+export async function getJson<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
+  return parseResponse<T>(await fetch(`/api${endpoint}`, { signal, headers: { Accept: 'application/json' } }))
+}
+
+export async function patchJson<T>(endpoint: string, body: unknown): Promise<T> {
+  return parseResponse<T>(await fetch(`/api${endpoint}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+  }))
+}
+
+export async function postJson<T>(endpoint: string, body: unknown): Promise<T> {
+  return parseResponse<T>(await fetch(`/api${endpoint}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+  }))
 }
 
 export function money(value: unknown): string {
