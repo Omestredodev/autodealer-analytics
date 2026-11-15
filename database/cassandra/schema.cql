@@ -128,3 +128,25 @@ CREATE TABLE IF NOT EXISTS events_by_period (
         event_id
     )
 ) WITH CLUSTERING ORDER BY (occurred_at DESC, event_id ASC);
+
+
+-- CRUD de etiquetas por veículo (laboratório). Não altera as tabelas de telemetria.
+CREATE TABLE IF NOT EXISTS autodealer.vehicle_tags_by_vehicle (
+    vehicle_id UUID,
+    tag_id UUID,
+    label TEXT,
+    updated_at TIMESTAMP,
+    PRIMARY KEY ((vehicle_id), tag_id)
+);
+
+-- Favoritos do usuario: particao por usuario, clustering por veiculo.
+-- Sem alterar as tabelas existentes de telemetria.
+CREATE TABLE IF NOT EXISTS autodealer.favorites_by_user (
+    user_id UUID,
+    vehicle_id UUID,
+    interest_level TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    PRIMARY KEY ((user_id), vehicle_id)
+);
+

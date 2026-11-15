@@ -1,0 +1,8 @@
+.featured-real-grid { align-items: stretch; }
+.featured-real-card { overflow: hidden; cursor: default; }
+.featured-photo-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  height: 225px; background: linear-gradient(135deg,#173151,#244b76); color: #f0f5ff; text-align: center; }
+.featured-photo-placeholder span { font-size: 3.2rem; }
+.featured-photo-placeholder small { font-size: .8rem; opacity: .82; }
+.featured-label { font-size: .67rem; font-weight: 700; color: #285fbd; letter-spacing: .08em; }
+.featured-empty { padding: 22px; border: 1px dashed #b7c6dc; border-radius: 12px; color: #476079; }

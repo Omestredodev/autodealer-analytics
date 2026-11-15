@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import { LiveModule } from './live/LiveModule'
+import { LiveCustomersPanel } from './live/LiveCustomersPanel'
+import { LiveInspectionsPanel } from './live/LiveInspectionsPanel'
+import { LiveInspectionsHistory } from './live/LiveInspectionsHistory'
+import { LiveFavoritesPage } from './live/LiveFavoritesPage'
 import { LiveDashboard } from './live/LiveDashboard'
 import { LiveCatalog, LiveVehicleDetail } from './live/LiveCatalog'
+import { LiveRegistrationPage, type VehicleSelection } from './live/LiveRegistrationPage'
+import { LiveFeaturedVehicles } from './live/LiveFeaturedVehicles'
 
 type IconName =
   | 'grid' | 'car' | 'users' | 'calendar' | 'sale' | 'audit' | 'chart'
@@ -36,9 +42,12 @@ function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 const navigation: { section?: string; name: string; icon: IconName }[] = [
   { name: 'Visão geral', icon: 'grid' },
   { section: 'COMERCIAL', name: 'Veículos', icon: 'car' },
+  { name: 'Vistorias', icon: 'audit' },
+  { name: 'Histórico de vistorias', icon: 'clock' },
   { name: 'Anúncios', icon: 'chart' },
   { name: 'Cadastro de veículo', icon: 'plus' },
   { name: 'Leads', icon: 'users' },
+  { name: 'Clientes', icon: 'users' },
   { name: 'Agendamentos', icon: 'calendar' },
   { name: 'Vendas', icon: 'sale' },
   { section: 'INTELIGÊNCIA', name: 'Auditoria', icon: 'audit' },
@@ -64,6 +73,8 @@ const cars = [
 function AdminApp({ onCustomer, onFlows, initialActive = 'Visão geral' }: { onCustomer: (page?:ClientPage) => void; onFlows: () => void; initialActive?: string }) {
   const [active, setActive] = useState(initialActive)
   const [drawer, setDrawer] = useState(false)
+  const [pendingVehicle, setPendingVehicle] = useState<VehicleSelection | null>(null)
+  const [inspectionVehicleId, setInspectionVehicleId] = useState('')
 
   return (
     <div className="app-shell">
@@ -110,13 +121,17 @@ function AdminApp({ onCustomer, onFlows, initialActive = 'Visão geral' }: { onC
 
         <main>
           <div className="page-head">
-            <div><p className="eyebrow">PAINEL ADMINISTRATIVO</p><h1>{active === 'Visão geral' ? 'Visão geral da plataforma' : active}</h1><p>{active === 'Visão geral' ? 'Dados reais consultados nos três bancos.' : ['Veículos','Anúncios','Leads','Agendamentos','Vendas','Auditoria'].includes(active) ? 'Consulta integrada à API local.' : 'Módulo ilustrativo do Figma; dados de demonstração.'}</p></div>
-            {!['Visão geral','Veículos','Anúncios','Leads','Agendamentos','Vendas','Auditoria'].includes(active) && !active.includes('Anúncio') && <button className="primary-button" onClick={()=>setActive('Cadastro de veículo')}><Icon name="plus" size={18}/> Cadastrar veículo</button>}
+            <div><p className="eyebrow">PAINEL ADMINISTRATIVO</p><h1>{active === 'Visão geral' ? 'Visão geral da plataforma' : active}</h1><p>{active === 'Visão geral' ? 'Dados reais consultados nos três bancos.' : ['Veículos','Anúncios','Cadastro de veículo','Leads','Clientes','Vistorias','Histórico de vistorias','Agendamentos','Vendas','Auditoria'].includes(active) ? 'Consulta integrada à API local.' : 'Módulo ilustrativo do Figma; dados de demonstração.'}</p></div>
+            {!['Visão geral','Veículos','Anúncios','Cadastro de veículo','Leads','Clientes','Vistorias','Histórico de vistorias','Agendamentos','Vendas','Auditoria'].includes(active) && !active.includes('Anúncio') && <button className="primary-button" onClick={()=>setActive('Cadastro de veículo')}><Icon name="plus" size={18}/> Cadastrar veículo</button>}
           </div>
 
           {active !== 'Visão geral' && (
+            active === 'Cadastro de veículo' ? <LiveRegistrationPage onRegistered={vehicle => { setPendingVehicle(vehicle); setActive('Anúncios') }}/> :
+            active === 'Clientes' ? <LiveCustomersPanel/> :
+            active === 'Vistorias' ? <LiveInspectionsPanel initialVehicleId={inspectionVehicleId} onOpenHistory={() => setActive('Histórico de vistorias')}/> :
+            active === 'Histórico de vistorias' ? <LiveInspectionsHistory onNew={(id = '') => { setInspectionVehicleId(id); setActive('Vistorias') }}/> :
             ['Veículos','Anúncios','Leads','Agendamentos','Vendas','Auditoria'].includes(active)
-              ? <LiveModule name={active}/>
+              ? <LiveModule name={active} initialVehicle={active === 'Anúncios' ? pendingVehicle : null} onCreateAd={v => { setPendingVehicle(v); setActive('Anúncios') }} onNavigateRegistration={() => setActive('Cadastro de veículo')}/>
               : <AdminModule active={active} navigate={setActive} openPublic={onCustomer}/>
           )}
 
@@ -387,7 +402,7 @@ function Field({label,value}:{label:string;value:string}){return <label classNam
 function FormSection({title,subtitle,children}:{title:string;subtitle:string;children:React.ReactNode}){return <section className="form-section"><div><h3>{title}</h3><p>{subtitle}</p></div>{children}</section>}
 function AdminChart(){return <div className="admin-chart"><div className="chart-bars">{[38,55,48,72,64,88,76,94,82,100,91,108].map((h,i)=><i key={i} style={{height:h}}/>)}</div><div className="chart-labels"><span>01 OUT</span><span>08 OUT</span><span>15 OUT</span><span>22 OUT</span></div><small>Dados fictícios para demonstração</small></div>}
 
-type ClientPage = 'home' | 'catalog' | 'detail' | 'auth' | 'schedule' | 'account'
+type ClientPage = 'home' | 'catalog' | 'detail' | 'favorites' | 'auth' | 'schedule' | 'account'
 
 const clientCars = [
   { name: 'Jeep Compass Longitude', year: '2024', km: '8.200 km', price: 'R$ 159.900,00', tag: 'Seminovo', image: 'https://images.unsplash.com/photo-1611168935847-4bf3f7291cde?auto=format&fit=crop&w=900&q=85' },
@@ -436,23 +451,25 @@ function ClientApp({ onAdmin, onFlows, initialPage = 'home' }: { onAdmin: () => 
       <nav className={mobileMenu ? 'client-nav open' : 'client-nav'}>
         <button onClick={() => go('home')} className={page === 'home' ? 'selected' : ''}>Início</button>
         <button onClick={() => go('catalog')} className={page === 'catalog' || page === 'detail' ? 'selected' : ''}>Veículos</button>
+        <button onClick={() => go('favorites')} className={page === 'favorites' ? 'selected' : ''}>♥ Favoritos</button>
         <button onClick={() => go('schedule')}>Agende uma visita</button>
         <button onClick={() => go('account')}>Minha conta</button>
       </nav>
       <div className="client-actions"><button className="admin-link" onClick={onAdmin}>Área administrativa</button><button className="outline-action" onClick={() => go('auth')}><Icon name="users" size={17}/> Entrar</button><button className="client-menu" onClick={() => setMobileMenu(!mobileMenu)}><Icon name={mobileMenu ? 'x' : 'menu'}/></button></div>
     </header>
-    {page === 'home' && <ClientHome go={go}/>}
-    {page === 'catalog' && <LiveCatalog onSelect={id=>{setSelectedVehicleId(id);go('detail')}}/>}
+    {page === 'home' && <ClientHome go={go} onSelect={id => { setSelectedVehicleId(id); go('detail') }}/>}
+    {page === 'catalog' && <LiveCatalog onSelect={id=>{setSelectedVehicleId(id);go('detail')}} onFavorites={() => go('favorites')}/>}
+    {page === 'favorites' && <LiveFavoritesPage onSelect={id=>{setSelectedVehicleId(id);go('detail')}} onBrowse={() => go('catalog')}/>}
     {page === 'detail' && <LiveVehicleDetail id={selectedVehicleId} onBack={()=>go('catalog')}/>}
     {page === 'auth' && <Auth go={go}/>}
     {page === 'schedule' && <Schedule go={go}/>}
     {page === 'account' && <Account go={go}/>}
-    <footer className="client-footer"><div className="client-logo light"><span><Icon name="car" size={22}/></span><strong>AutoDealer<small>Veículos selecionados</small></strong></div><p>Dados e veículos fictícios para demonstração acadêmica.</p><div><button onClick={() => go('catalog')}>Estoque</button><button onClick={() => go('schedule')}>Agendamento</button><button onClick={() => go('auth')}>Entrar</button><button onClick={onFlows}>Fluxos</button></div></footer>
-    <nav className="client-mobile-nav" aria-label="Navegação móvel"><button className={page==='home'?'active':''} onClick={()=>go('home')}><Icon name="grid"/><span>Início</span></button><button className={page==='catalog'||page==='detail'?'active':''} onClick={()=>go('catalog')}><Icon name="car"/><span>Veículos</span></button><button className={page==='schedule'?'active':''} onClick={()=>go('schedule')}><Icon name="calendar"/><span>Agendar</span></button><button className={page==='account'?'active':''} onClick={()=>go('account')}><Icon name="users"/><span>Conta</span></button></nav>
+    <footer className="client-footer"><div className="client-logo light"><span><Icon name="car" size={22}/></span><strong>AutoDealer<small>Veículos selecionados</small></strong></div><p>Dados e veículos fictícios para demonstração acadêmica.</p><div><button onClick={() => go('catalog')}>Estoque</button><button onClick={() => go('schedule')}>Agendamento</button><button onClick={() => go('favorites')}>Meus favoritos</button><button onClick={() => go('auth')}>Entrar</button><button onClick={onFlows}>Fluxos</button></div></footer>
+    <nav className="client-mobile-nav" aria-label="Navegação móvel"><button className={page==='home'?'active':''} onClick={()=>go('home')}><Icon name="grid"/><span>Início</span></button><button className={page==='catalog'||page==='detail'?'active':''} onClick={()=>go('catalog')}><Icon name="car"/><span>Veículos</span></button><button className={page==='favorites'?'active':''} onClick={()=>go('favorites')}><Icon name="car"/><span>Favoritos</span></button><button className={page==='schedule'?'active':''} onClick={()=>go('schedule')}><Icon name="calendar"/><span>Agendar</span></button><button className={page==='account'?'active':''} onClick={()=>go('account')}><Icon name="users"/><span>Conta</span></button></nav>
   </div>
 }
 
-function ClientHome({ go }: { go: (p: ClientPage) => void }) {
+function ClientHome({ go, onSelect }: { go: (p: ClientPage) => void; onSelect: (id:string) => void }) {
   return <main className="client-main home-page" data-frame="C01 — Home — Responsivo">
     <section className="hero">
       <img src="https://images.unsplash.com/photo-1763165524644-a21524b47734?auto=format&fit=crop&w=1800&q=88" alt="Automóvel premium azul em showroom"/>
@@ -461,7 +478,7 @@ function ClientHome({ go }: { go: (p: ClientPage) => void }) {
         <div className="quick-filters"><span>Buscas rápidas:</span><button>SUV</button><button>Até R$ 150 mil</button><button>Automático</button></div>
       </div>
     </section>
-    <section className="client-section"><div className="section-title"><div><span>SELEÇÃO ESPECIAL</span><h2>Veículos em destaque</h2><p>Anúncios publicados de veículos disponíveis • dados simulados.</p></div><button onClick={() => go('catalog')}>Ver todos <Icon name="arrow" size={17}/></button></div><div className="car-grid">{publicCars.map(car => <CarCard key={car.name} car={car} onClick={() => go('detail')}/>)}</div></section>
+    <LiveFeaturedVehicles onSelect={onSelect} onBrowse={() => go('catalog')}/>
     <section className="categories client-section"><div className="section-title"><div><span>ENCONTRE SEU ESTILO</span><h2>Explore por categoria</h2></div></div><div className="category-grid">{['SUV','Sedan','Hatch','Picape'].map((c,i)=><button key={c} onClick={()=>go('catalog')}><span>{['18 veículos','12 veículos','9 veículos','7 veículos'][i]}</span><strong>{c}</strong><Icon name="arrow"/></button>)}</div></section>
     <section className="trust-strip"><div><Icon name="shield" size={27}/><span><strong>Procedência verificada</strong><small>Histórico e documentação revisados</small></span></div><div><Icon name="car" size={27}/><span><strong>Curadoria especializada</strong><small>Veículos criteriosamente selecionados</small></span></div><div><Icon name="users" size={27}/><span><strong>Atendimento consultivo</strong><small>Do primeiro contato à entrega</small></span></div></section>
     <section className="home-cta"><div><span>PRONTO PARA CONHECER SEU PRÓXIMO CARRO?</span><h2>Agende uma visita ao nosso showroom</h2><p>Escolha o melhor dia e horário. Nossa equipe deixa tudo preparado para você.</p></div><button onClick={() => go('schedule')}>Agendar visita <Icon name="calendar" size={18}/></button></section>

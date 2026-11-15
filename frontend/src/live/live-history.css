@@ -1,0 +1,32 @@
+
+/* Histórico administrativo de vistorias e página pública de favoritos */
+.business-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+.business-summary>div{border:1px solid #e2e9f2;border-radius:10px;padding:13px;background:#f8faff;display:flex;flex-direction:column;gap:4px}
+.business-summary small{font-size:11px;color:#637690}.business-summary strong{font-size:17px;color:#163456}
+.business-history-filters{display:grid;grid-template-columns:1fr 2fr auto 1.4fr auto;gap:10px;align-items:end;margin:18px 0}
+.business-history-filters>button{height:42px}
+.business-history-table{overflow-x:auto;border:1px solid #e0e7f1;border-radius:11px}
+.business-history-table table{width:100%;border-collapse:collapse;min-width:680px}
+.business-history-table th{text-align:left;background:#f3f7fd;font-size:12px;color:#516480;padding:12px;border-bottom:1px solid #dce5f0}
+.business-history-table td{padding:12px;border-bottom:1px solid #e6ebf4;font-size:12px;vertical-align:middle}
+.business-history-table td small{display:block;color:#64758c;margin-top:4px;overflow-wrap:anywhere;font-size:10px}
+.business-status{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.business-status.approved{color:#166647;background:#e5f7ef}.business-status.draft{color:#8b6007;background:#fff4d9}
+.business-inspection-detail{margin-top:22px;padding:20px;border-radius:12px;border:1px solid #bdcfee;background:#f9fbff;scroll-margin-top:80px}
+.business-inspection-detail .business-field>strong{display:block;padding:11px;border:1px solid #dae4f0;border-radius:8px;background:white}
+.business-inspection-detail .business-field>p{margin:4px 0;padding:9px;background:white;border-radius:8px}
+.business-favorites-page{width:100%;max-width:1300px;margin:0 auto}
+.business-page-link{border:1px solid #b6c8e4;border-radius:9px;padding:11px 15px;color:#2357ab;background:#f6f9ff;cursor:pointer}
+.business-favorites-filters{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin:20px 0}
+.business-favorites-manage{margin:18px 0;padding:23px}
+.business-profile{margin:12px 0}
+.business-favorites-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:15px 0}
+.business-favorite-card{display:flex;min-width:0;overflow:hidden;flex-direction:column;border:1px solid #dce5f1;border-radius:12px;background:#fff}
+.business-favorite-photo{min-height:100px;display:flex;justify-content:center;align-items:center;background:linear-gradient(135deg,#dae5f7,#f3f6fb);font-size:40px}
+.business-favorite-content{padding:16px;min-width:0}
+.business-favorite-content h3{font-size:17px;margin:12px 0 6px}
+.business-favorite-content small{color:#6a7c91;overflow-wrap:anywhere}
+.business-favorite-content .business-actions{align-items:end}
+.business-note{font-size:11px;color:#667a91}
+@media(max-width:1000px){.business-history-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.business-summary{grid-template-columns:1fr 1fr}}
+@media(max-width:720px){.business-favorites-grid,.business-favorites-filters,.business-summary,.business-history-filters{grid-template-columns:1fr}.business-inspection-detail{padding:13px}}

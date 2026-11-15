@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cellText, dateBR, getJson, money, patchJson, type ApiRow, type ApiList } from './api'
 import { useResource } from './useResource'
+import { LiveInventoryManager } from './LiveInventoryManager'
+import type { VehicleSelection } from './LiveRegistrationPage'
 import './live-actions.css'
 
 type Column = { key: string; label: string; format?: 'money' | 'date' | 'short' | 'status' }
@@ -51,7 +53,7 @@ function FormatValue({ row, column }: { row: ApiRow; column: Column }) {
   return <>{cellText(raw)}</>
 }
 
-export function LiveModule({ name }: { name: string }) {
+export function LiveModule({ name, initialVehicle, onCreateAd, onNavigateRegistration }: { name: string; initialVehicle?: VehicleSelection | null; onCreateAd?: (vehicle: VehicleSelection) => void; onNavigateRegistration?: () => void }) {
   const config = modules[name] || modules['Veículos']
   const isOperation = operationNames.includes(name as OperationName)
   const operation = name as OperationName
@@ -137,6 +139,7 @@ export function LiveModule({ name }: { name: string }) {
 
   return <section className="live-panel">
     <div className="live-panel-top"><div><h2>{config.title}</h2><p>{config.description}</p></div><button onClick={() => setRevision(value => value + 1)}>Atualizar dados</button></div>
+    {(name === 'Veículos' || name === 'Anúncios') && <LiveInventoryManager mode={name === 'Veículos' ? 'Veículos' : 'Anúncios'} initialVehicle={initialVehicle} onCreateAd={onCreateAd} onNavigateRegistration={onNavigateRegistration} onChanged={() => setRevision(value => value + 1)}/>}
     <div className="live-toolbar">
       <input aria-label="Pesquisar nesta página" placeholder="Pesquisar nos registros desta página" value={query} onChange={event => setQuery(event.target.value)}/>
       {name === 'Veículos' && <input aria-label="Filtrar marca" placeholder="Filtrar marca (ex.: BMW)" value={brand} onChange={event => { setPage(1); setBrand(event.target.value) }}/>}
