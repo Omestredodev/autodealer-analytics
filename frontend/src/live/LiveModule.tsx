@@ -83,7 +83,9 @@ export function LiveModule({ name }: { name: string }) {
   }, [name])
 
   const path = useMemo(() => {
-    const qs = new URLSearchParams({ page: String(page), limit: '10' })
+    const qs = name === 'Auditoria'
+      ? new URLSearchParams({ limit: '100' })
+      : new URLSearchParams({ page: String(page), limit: '10' })
     if (name === 'Veículos' && brand.trim()) qs.set('make', brand.trim())
     if (isOperation && statusFilter) qs.set('status', statusFilter)
     return `${config.url}?${qs.toString()}`
@@ -156,7 +158,23 @@ export function LiveModule({ name }: { name: string }) {
         {isOperation && <td><button type="button" className="live-inline-button" aria-expanded={String(selected?.id ?? '') === String(row.id)} onClick={() => selectRow(row)}>Detalhes / status</button></td>}</tr>)}
       {!filtered.length && <tr><td colSpan={config.columns.length + (isOperation ? 1 : 0)}>Nenhum registro encontrado nesta página.</td></tr>}
     </tbody></table></div>}
-    <div className="live-pagination"><span>Página {pagination?.page ?? page} de {totalPages}</span><div><button disabled={page <= 1} onClick={() => setPage(value => value - 1)}>Anterior</button><button disabled={page >= totalPages} onClick={() => setPage(value => value + 1)}>Próxima</button></div></div>
+    {name === 'Auditoria' ? (
+      <div className="live-pagination">
+        <span>Exibindo até 100 eventos mais recentes (sem paginação)</span>
+      </div>
+    ) : (
+      <div className="live-pagination">
+        <span>Página {pagination?.page ?? page} de {totalPages}</span>
+        <div>
+          <button disabled={page <= 1} onClick={() => setPage(value => value - 1)}>
+            Anterior
+          </button>
+          <button disabled={page >= totalPages} onClick={() => setPage(value => value + 1)}>
+            Próxima
+          </button>
+        </div>
+      </div>
+    )}
     {isOperation && selected && <div ref={detailsRef} className="live-operation-card" style={{ scrollMarginTop: '96px' }}>
       <div className="live-operation-title"><div><h3>{name}: detalhes da operação</h3><small>ID: {cellText(selected.id)}</small></div><button onClick={() => {setSelected(null);setConfirming(false);setActionError('');setNotice('')}}>Fechar</button></div>
       <div className="live-operation-details">{Object.entries(selected).filter(([key]) => key !== 'id').map(([key,value]) => <div key={key}><span>{key.replace(/_/g, ' ')}</span><strong>{key.includes('price') ? money(value) : key.endsWith('_at') ? dateBR(value) : cellText(value)}</strong></div>)}</div>
