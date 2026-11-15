@@ -227,8 +227,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\docs\entrega-final\scripts
 ## Equipe
 
 - Guilherme Gomes — PostgreSQL
-- Integrante 2 — MongoDB
-- Integrante 3 — Apache Cassandra
+- Gustavo Delfino — MongoDB
+- Bruno Kenez — Apache Cassandra
 
 ## Status do projeto
 
