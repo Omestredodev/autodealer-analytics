@@ -1,0 +1,29 @@
+/* Entrega 6: operações reais, mantendo a identidade visual do Figma */
+.live-toolbar select,.live-operation-actions select{background:#fff;border:1px solid #d2dbea;border-radius:8px;padding:10px 12px;font-size:12px;color:#344054;min-width:155px}
+.live-demo-warning{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 14px;margin-bottom:15px;border:1px solid #f6dca4;border-radius:10px;background:#fffaeb;font-size:12px;color:#6b4c12}
+.live-demo-warning label{display:flex;align-items:center;gap:7px;font-weight:700;cursor:pointer}
+.live-demo-warning input{width:16px;height:16px;accent-color:#2855d9}
+.live-inline-button{border:1px solid #b5c8eb;color:#2855d9;border-radius:7px;background:#f5f8ff;padding:7px 9px;font-size:11px;font-weight:600;white-space:nowrap}
+.live-operation-card{position:relative;border:1px solid #c5d5f1;background:#f8faff;border-radius:12px;padding:20px;margin-top:20px}
+.live-operation-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.live-operation-title h3{font-size:17px;margin:0 0 5px}.live-operation-title small{font-size:11px;color:#687588;overflow-wrap:anywhere}
+.live-operation-title button,.live-operation-actions button,.live-confirm button{border:1px solid #d2dbea;border-radius:8px;background:#fff;color:#344054;padding:10px 12px;font-size:12px}
+.live-operation-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:17px}
+.live-operation-details>div{display:flex;flex-direction:column;gap:4px;background:#fff;padding:10px;border:1px solid #e6ebf4;border-radius:8px;min-width:0}
+.live-operation-details span{font-size:10px;text-transform:capitalize;color:#718096}.live-operation-details strong{font-size:12px;font-weight:600;overflow-wrap:anywhere;color:#263248}
+.live-operation-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.live-operation-actions label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#667085}
+.live-operation-actions .live-primary-action,.live-confirm .live-primary-action{background:#2855d9;color:#fff;border-color:#2855d9;font-weight:700}
+.live-operation-actions button:disabled,.live-confirm button:disabled{opacity:.4;cursor:not-allowed}
+.live-success{border:1px solid #a9d7c7;background:#ecfdf3;color:#067647;border-radius:8px;padding:12px;font-size:12px}
+.live-confirm{margin-top:15px;background:#fff4e8;border:1px solid #eebd79;border-radius:10px;padding:14px}
+.live-confirm h4,.live-audit-history h4{font-size:14px;margin:0 0 8px}.live-confirm p{font-size:12px;color:#815d2a;line-height:1.6;margin:6px 0}
+.live-confirm>div{display:flex;gap:8px;margin-top:12px}.live-audit-history{margin-top:18px;border-top:1px solid #d7e1ef;padding-top:13px}
+.live-audit-history p{font-size:12px;color:#41516a;margin:9px 0}
+.live-telemetry-note{font-size:11px;color:#5d728c;margin-top:10px}.live-telemetry-note.live-telemetry-error{color:#b42318}
+.live-activity{margin-top:16px;border-top:1px solid #e6ebf4;padding-top:16px}.live-activity h3{font-size:15px;margin:0 0 8px}
+.live-activity-header{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.live-activity-header button{border:1px solid #d2dbea;border-radius:8px;background:#fff;color:#2855d9;padding:8px 11px;font-size:12px}
+.live-activity-header input{border:1px solid #d2dbea;border-radius:8px;background:#fff;color:#344054;padding:8px 11px;font-size:12px}
+.live-activity p{font-size:11px;color:#667085}.live-activity table{width:100%;border-collapse:collapse;font-size:12px}.live-activity th,.live-activity td{border-bottom:1px solid #edf0f6;padding:8px;text-align:left}
+@media(max-width:800px){.live-operation-details{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.live-operation-details{grid-template-columns:1fr}.live-operation-actions button{width:100%}}
