@@ -247,5 +247,3 @@ O laboratório opera com **uma instância de cada banco**, Cassandra `RF=1`, sem
 - Documentação técnica e apresentação: [`docs/entrega-final/`](docs/entrega-final/).
 - Modelo e contratos: [`docs/architecture/`](docs/architecture/) e [`docs/database-models/`](docs/database-models/).
 - Experimentos e benchmarks: [`docs/benchmarks/`](docs/benchmarks/).
-
-Os nomes e RAs completos dos integrantes devem constar dos documentos acadêmicos de entrega.
