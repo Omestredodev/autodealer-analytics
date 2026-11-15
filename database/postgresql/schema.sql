@@ -255,6 +255,7 @@ CREATE TABLE advertisements (
     description TEXT,
     price NUMERIC(12,2) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+    is_featured BOOLEAN NOT NULL DEFAULT FALSE,
     published_at TIMESTAMPTZ,
     ended_at TIMESTAMPTZ,
     created_by UUID REFERENCES users(id),

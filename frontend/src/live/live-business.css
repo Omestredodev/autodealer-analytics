@@ -1,0 +1,20 @@
+.business-panel{margin:12px 0 28px;padding:22px;background:#fff;border:1px solid #dae2ef;border-radius:14px;color:#203451}
+.business-panel h2,.business-panel h3{margin:0 0 8px;color:#142e50}.business-panel p{font-size:13px;line-height:1.6;color:#5b6d88}
+.business-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.business-badge{font-size:11px;font-weight:700;color:#2558c1;background:#f1f5ff;padding:6px 10px;border-radius:18px}
+.business-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end;margin:14px 0}
+.business-field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#506584}
+.business-field input,.business-field select,.business-field textarea{border:1px solid #cdd8e9;border-radius:9px;padding:11px;width:100%;font-size:13px;color:#233c61;background:white;min-width:0}
+.business-field textarea{resize:vertical;min-height:70px}.business-field.wide{grid-column:1/-1}
+.business-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.business-panel button,.business-favorites button,.business-favorite-button{border:1px solid #bfd0e8;border-radius:8px;padding:9px 12px;color:#2457aa;background:#f6f9ff;cursor:pointer;font-size:12px}
+.business-panel button.primary,.business-favorite-button.primary{background:#2457c8;color:#fff;border-color:#2457c8}
+.business-panel button:disabled,.business-favorites button:disabled,.business-favorite-button:disabled{opacity:.45;cursor:not-allowed}
+.business-rows{display:flex;flex-direction:column;gap:8px;margin:14px 0}.business-row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border:1px solid #e2e8f1;border-radius:9px;padding:12px;flex-wrap:wrap}
+.business-row strong{font-size:13px;color:#213652}.business-row small{font-size:11px;display:block;color:#637690;margin-top:4px;overflow-wrap:anywhere}
+.business-alert{color:#a32a25!important;background:#fff2f1;border:1px solid #f2c8c4;border-radius:8px;padding:10px}
+.business-success{color:#126342!important;background:#ecf9f0;border:1px solid #c6e8d2;border-radius:8px;padding:10px}
+.business-favorites{padding:18px;margin:22px 0;background:white;border:1px solid #dde7f3;border-radius:12px;color:#233651}
+.business-favorites h3{margin:0 0 6px;font-size:17px}.business-favorites p{font-size:12px;color:#62728c}
+.business-favorite-button{margin:8px 0}.business-favorite-select{padding:8px;border:1px solid #cbd6e6;border-radius:8px;margin:6px 8px 6px 0}
+@media(max-width:700px){.business-form{grid-template-columns:1fr}.business-panel{padding:15px}}
