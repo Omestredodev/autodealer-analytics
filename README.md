@@ -196,7 +196,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\docs\stock\check-vehicle-c
 
 Os testes com escrita (`test-business.ps1` e `check-vehicle-cycle.ps1 -ExecuteWriteFlow`) **modificam os bancos de demonstração** e devem ser executados somente quando isso for intencional. Esses testes podem gerar históricos de auditoria mesmo quando realizam limpeza lógica.
 
-**Estado da validação:** backend e frontend compilaram em uma cópia limpa criada com `git archive`, e os fluxos de negócio foram testados na instalação já existente. A inicialização completa das três bases a partir de volumes vazios ainda precisa ser homologada em ambiente isolado.
+### 9. Homologação isolada dos três bancos (opcional)
+
+Para testar schemas e seeds sem alterar os volumes da demonstração, execute o script versionado em `docs/validacao` a partir da raiz do repositório:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\docs\validacao\validar-autodealer-isolado.ps1 -RepoPath (Get-Location).Path
+```
+
+O script cria um projeto Docker separado com volumes novos, mostra os resultados e indica o comando específico para remover **somente** o ambiente temporário. Isso exige memória adicional, especialmente para o Cassandra. Não substitui testes end-to-end do backend.
+
+**Estado da validação (15/11/2026):** backend e frontend compilaram em uma cópia limpa criada com `git archive`. Os fluxos comerciais foram testados na instalação principal. PostgreSQL, MongoDB e Cassandra foram inicializados com sucesso em um projeto Docker isolado, com volumes novos, executando schemas, seeds, índices e migrações a partir dos arquivos versionados no Git. Isso **não equivale** a um teste ponta a ponta da API nesse ambiente isolado.
 
 ## Estrutura relevante
 
